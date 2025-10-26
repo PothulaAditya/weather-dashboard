@@ -1,0 +1,150 @@
+extends layout
+
+block content
+  // Hero Section
+  .hero-section.mb-5
+    .container
+      .row.justify-content-center.text-center
+        .col-lg-8
+          .hero-content.py-5
+            h1.display-4.fw-bold.mb-3.text-primary Weather Dashboard
+            p.lead.text-muted.mb-4 Get real-time weather information and forecasts for any city worldwide
+            .hero-search.mt-4
+              .card.border-0.shadow-lg
+                .card-body.p-4
+                  h3.h5.mb-3.text-center Search Weather by City
+                  form(method='get' action='/' class='row g-3' id='city-search-form')
+                    .col-md-9
+                      .input-group.input-group-lg
+                        span.input-group-text.bg-primary.text-white
+                          i.fas.fa-search
+                        input#city-input.form-control.form-control-lg(type='text' name='city' placeholder='Enter city name, e.g. New York, London, Tokyo' value=query required aria-label='City')
+                    .col-md-3
+                      button.btn.btn-primary.btn-lg.w-100(type='submit')
+                        i.fas.fa-cloud.me-2
+                        | Search
+                  if error
+                    .alert.alert-danger.mt-3.d-flex.align-items-center
+                      i.fas.fa-exclamation-triangle.me-2
+                      | #{error}
+                  else if info
+                    .alert.alert-info.mt-3.d-flex.align-items-center
+                      i.fas.fa-info-circle.me-2
+                      | #{info}
+  // Weather Results Section
+  if weatherResult
+    .weather-results.mt-5
+      .container
+        .row.justify-content-center
+          .col-lg-8
+            .weather-card.card.border-0.shadow-lg.overflow-hidden
+              .weather-header.bg-gradient-primary.text-white.p-4
+                .row.align-items-center
+                  .col-md-8
+                    h2.mb-1.fw-bold #{weatherResult.location}
+                    p.mb-0.opacity-75.text-capitalize #{weatherResult.condition}
+                  .col-md-4.text-md-end
+                    if weatherResult.icon
+                      img.weather-icon(src=weatherResult.icon alt='Weather icon' style='width:80px;height:80px;filter: brightness(0) invert(1);')
+              .weather-body.p-4
+                .row.align-items-center
+                  .col-md-6
+                    .temperature-display.text-center.text-md-start
+                      h1.display-1.fw-bold.text-primary.mb-0
+                        if typeof weatherResult.temp === 'number'
+                          | #{weatherResult.temp}°
+                        else
+                          | —
+                      p.text-muted.mb-0 Celsius
+                  .col-md-6
+                    .weather-details
+                      .row.g-3
+                        if weatherResult.humidity
+                          .col-6
+                            .detail-item.text-center
+                              .detail-icon.mb-2
+                                i.fas.fa-tint.text-primary.fs-3
+                              .detail-value.fw-bold #{weatherResult.humidity}%
+                              .detail-label.text-muted.small Humidity
+                        if weatherResult.windSpeed
+                          .col-6
+                            .detail-item.text-center
+                              .detail-icon.mb-2
+                                i.fas.fa-wind.text-primary.fs-3
+                              .detail-value.fw-bold #{weatherResult.windSpeed}
+                              .detail-label.text-muted.small m/s Wind
+              .weather-footer.bg-light.p-3
+                .row.align-items-center
+                  .col-md-6
+                    if weatherResult.source === 'static'
+                      span.badge.bg-secondary.px-3.py-2
+                        i.fas.fa-database.me-1
+                        | Static Data
+                    else
+                      span.badge.bg-success.px-3.py-2
+                        i.fas.fa-satellite-dish.me-1
+                        | Live Data
+                  .col-md-6.text-md-end
+                    a.btn.btn-outline-primary.px-4(href=`/forecast?city=${encodeURIComponent(weatherResult.query || weatherResult.location)}`)
+                      i.fas.fa-calendar-alt.me-2
+                      | View 5-Day Forecast
+  // Features Section
+  .features-section.py-5.bg-white
+    .container
+      .row.justify-content-center.text-center.mb-5
+        .col-lg-8
+          h2.h3.fw-bold.mb-3 Why Choose Our Weather Dashboard?
+          p.text-muted.mb-0 Get accurate weather information and forecasts powered by OpenWeatherMap
+      .row.g-4
+        .col-md-4
+          .feature-card.text-center.p-4
+            .feature-icon.mb-3
+              i.fas.fa-cloud-sun.text-primary.fs-1
+            h5.fw-bold.mb-2 Real-time Data
+            p.text-muted.small Get live weather updates from reliable sources worldwide
+        .col-md-4
+          .feature-card.text-center.p-4
+            .feature-icon.mb-3
+              i.fas.fa-chart-line.text-primary.fs-1
+            h5.fw-bold.mb-2 5-Day Forecast
+            p.text-muted.small Plan ahead with detailed weather forecasts for the next 5 days
+        .col-md-4
+          .feature-card.text-center.p-4
+            .feature-icon.mb-3
+              i.fas.fa-mobile-alt.text-primary.fs-1
+            h5.fw-bold.mb-2 Mobile Friendly
+            p.text-muted.small Responsive design that works perfectly on all devices
+
+  // Featured Cities Section
+  if featuredCities && featuredCities.length
+    .featured-cities.py-5
+      .container
+        .row.justify-content-center
+          .col-lg-10
+            .card.border-0.shadow-lg
+              .card-body.p-4
+                .text-center.mb-4
+                  h3.h4.fw-bold.mb-2 Popular Hyderabad Localities
+                  p.text-muted.mb-0 Quick access to weather information for popular areas
+                .row.g-3
+                  each city in featuredCities
+                    .col-md-3.col-sm-6
+                      button.btn.btn-outline-primary.w-100.city-quick-btn.py-3(type='button' data-query=city.query)
+                        i.fas.fa-map-marker-alt.me-2
+                        | #{city.name}
+                .text-center.mt-4
+                  p.text-muted.small.mb-0 Tap any locality above to instantly search for weather information
+
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const buttons = document.querySelectorAll('.city-quick-btn');
+      const input = document.getElementById('city-input');
+      const form = document.getElementById('city-search-form');
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!input || !form) return;
+          input.value = btn.dataset.query || '';
+          form.submit();
+        });
+      });
+    });

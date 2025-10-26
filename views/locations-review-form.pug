@@ -1,0 +1,16 @@
+form(method='post' action='/review')
+  .mb-3
+    label.form-label(for='city') City
+    input.form-control(type='text' id='city' name='city' placeholder='City reviewed')
+  .mb-3
+    label.form-label(for='rating') Rating
+    select.form-select(id='rating' name='rating')
+      option(value='5') 5 - Excellent
+      option(value='4') 4 - Good
+      option(value='3') 3 - OK
+      option(value='2') 2 - Poor
+      option(value='1') 1 - Terrible
+  .mb-3
+    label.form-label(for='comments') Comments
+    textarea.form-control(id='comments' name='comments' rows='4')
+  button.btn.btn-primary(type='submit') Submit Review

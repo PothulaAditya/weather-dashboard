@@ -1,0 +1,57 @@
+extends layout
+
+block content
+  .row
+    .col-lg-10.mx-auto
+      h1.h4.mb-4 Manage Stored Weather Data
+      if message
+        .alert.alert-success(role='alert') #{message}
+      if error
+        .alert.alert-danger(role='alert') #{error}
+      if !locations || !locations.length
+        .alert.alert-info No weather records found. Add documents to MongoDB to manage them here.
+      else
+        each location in locations
+          .card.mb-3.shadow-sm
+            .card-header.d-flex.justify-content-between.align-items-center
+              span.fw-semibold #{location.city}
+              span.badge.bg-secondary.text-uppercase #{location.current && location.current.country ? location.current.country : 'N/A'}
+            .card-body
+              form(method='post' action='/manage/update' class='row g-3')
+                input(type='hidden' name='city' value=location.city)
+                .col-md-6
+                  label.form-label(for=`name-${location._id}`) Display name
+                  input.form-control(type='text' id=`name-${location._id}` name='name' value=(location.current && location.current.name) || '')
+                .col-md-3
+                  label.form-label(for=`country-${location._id}`) Country
+                  input.form-control(type='text' id=`country-${location._id}` name='country' value=(location.current && location.current.country) || '')
+                .col-md-3
+                  label.form-label(for=`icon-${location._id}`) Icon code
+                  input.form-control(type='text' id=`icon-${location._id}` name='icon' value=(location.current && location.current.icon) || '')
+                .col-md-3
+                  label.form-label(for=`temp-${location._id}`) Temperature (°C)
+                  input.form-control(type='number' step='any' id=`temp-${location._id}` name='temp' value=(location.current && location.current.temp !== undefined ? location.current.temp : ''))
+                .col-md-3
+                  label.form-label(for=`condition-${location._id}`) Condition
+                  input.form-control(type='text' id=`condition-${location._id}` name='condition' value=(location.current && location.current.condition) || '')
+                .col-md-3
+                  label.form-label(for=`humidity-${location._id}`) Humidity (%)
+                  input.form-control(type='number' step='any' id=`humidity-${location._id}` name='humidity' value=(location.current && location.current.humidity !== undefined ? location.current.humidity : ''))
+                .col-md-3
+                  label.form-label(for=`wind-${location._id}`) Wind speed (m/s)
+                  input.form-control(type='number' step='any' id=`wind-${location._id}` name='windSpeed' value=(location.current && location.current.windSpeed !== undefined ? location.current.windSpeed : ''))
+                .col-12.d-flex.justify-content-end.gap-2
+                  button.btn.btn-primary(type='submit') Update current weather
+              if location.forecast && location.forecast.length
+                .mt-3
+                  h2.h6.mb-2 Forecast snapshot
+                  .row.g-2
+                    each day in location.forecast.slice(0,5)
+                      .col-md-4.col-lg-3
+                        .border.rounded.p-2
+                          .fw-semibold #{day.date}
+                          .small.mb-1 #{day.condition}
+                          .small.text-muted Temp: #{day.temp}°C
+              form(method='post' action='/manage/delete' class='mt-3')
+                input(type='hidden' name='city' value=location.city)
+                button.btn.btn-outline-danger(type='submit' onclick="return confirm('Delete weather data for #{location.city}?');") Delete this record

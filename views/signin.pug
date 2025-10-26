@@ -1,0 +1,14 @@
+extends layout
+
+block content
+  .row
+    .col-md-6.offset-md-3
+      h2 Sign In
+      form(method='post' action='/signin')
+        .mb-3
+          label.form-label(for='email') Email
+          input.form-control(type='email' id='email' name='email' required)
+        .mb-3
+          label.form-label(for='password') Password
+          input.form-control(type='password' id='password' name='password' required)
+        button.btn.btn-primary(type='submit') Sign In

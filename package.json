@@ -4,7 +4,8 @@
   "description": "Simple Weather Dashboard using Node.js, Express and Pug",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "smoke": "node scripts/smoke_test.js"
   },
   "keywords": [],
   "author": "",

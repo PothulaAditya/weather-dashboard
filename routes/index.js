@@ -10,6 +10,11 @@ const manageController = require('../controllers/manage');
 router.get('/', weatherController.homelist);
 // Forecast
 router.get('/forecast', weatherController.forecast);
+// API JSON for forecast (debug/integ)
+router.get('/api/forecast', weatherController.apiForecast);
+
+// Health check for Render or load balancers
+router.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Manage stored weather data
 router.get('/manage', manageController.list);

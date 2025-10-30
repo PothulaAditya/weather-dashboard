@@ -195,4 +195,49 @@ const forecast = async (req, res) => {
   }
 };
 
-module.exports = { homelist, forecast };
+// API: return forecast JSON useful for debugging or integrations
+const apiForecast = async (req, res) => {
+  const city = (req.query.city || '').trim();
+  if (!city) return res.status(400).json({ error: 'city query parameter is required' });
+
+  try {
+    // Try live API first
+    const forecastData = await fetchForecastFromAPI(city);
+    const currentWeather = await fetchWeatherFromAPI(city);
+
+    if (forecastData && currentWeather) {
+      // Optionally cache
+      await updateWeatherInDB(city, currentWeather, forecastData).catch(() => {});
+
+      return res.json({
+        source: 'api',
+        location: currentWeather.name,
+        current: currentWeather,
+        days: forecastData
+      });
+    }
+
+    // Fallback: try MongoDB
+    const normalized = normalizeCity(city);
+    const doc = normalized
+      ? await LocationWeather.findOne({ city: new RegExp(`^${normalized}$`, 'i') }).lean()
+      : null;
+
+    if (doc) {
+      return res.json({
+        source: 'mongo',
+        location: doc.current ? doc.current.name || doc.city : doc.city,
+        current: doc.current || null,
+        days: doc.forecast || []
+      });
+    }
+
+    return res.status(404).json({ error: `No forecast found for "${city}"` });
+  } catch (err) {
+    console.error('apiForecast error:', err.message || err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
+module.exports = { homelist, forecast, apiForecast };

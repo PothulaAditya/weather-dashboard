@@ -239,5 +239,17 @@ const apiForecast = async (req, res) => {
   }
 };
 
+// API: list all stored locations (read-only). Useful to verify which DB the app is writing to.
+const apiLocations = async (req, res) => {
+  try {
+    const docs = await LocationWeather.find({}).lean();
+    return res.json({ count: docs.length, locations: docs.map(d => ({ city: d.city, updatedAt: d.updatedAt || d.updated_at || null })) });
+  } catch (err) {
+    console.error('apiLocations error:', err.message || err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
 
-module.exports = { homelist, forecast, apiForecast };
+
+module.exports = { homelist, forecast, apiForecast, apiLocations };
+

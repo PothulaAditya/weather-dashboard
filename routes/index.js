@@ -16,6 +16,9 @@ router.get('/api/forecast', weatherController.apiForecast);
 // Health check for Render or load balancers
 router.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Expose list of stored locations for debugging/verification
+router.get('/api/locations', weatherController.apiLocations);
+
 // Manage stored weather data
 router.get('/manage', manageController.list);
 router.post('/manage/update', manageController.update);

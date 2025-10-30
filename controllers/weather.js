@@ -1,4 +1,8 @@
 const LocationWeather = require('../models/locationWeather');
+const axios = require('axios');
+
+const API_KEY = process.env.OPENWEATHERMAP_API_KEY;
+const WEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5';
 
 const featuredCities = [
   { name: 'Charminar', query: 'Charminar,IN' },
@@ -21,6 +25,76 @@ const normalizeCity = (value = '') =>
     .toLowerCase()
     .replace(/,.*$/, '')
     .trim();
+
+const kelvinToCelsius = (kelvin) => Math.round(kelvin - 273.15);
+
+const fetchWeatherFromAPI = async (city) => {
+  try {
+    const response = await axios.get(`${WEATHER_API_BASE}/weather`, {
+      params: {
+        q: city,
+        appid: API_KEY
+      }
+    });
+
+    const data = response.data;
+    return {
+      name: data.name,
+      country: data.sys.country,
+      temp: kelvinToCelsius(data.main.temp),
+      condition: data.weather[0].main,
+      icon: data.weather[0].icon,
+      humidity: data.main.humidity,
+      windSpeed: Math.round(data.wind.speed * 3.6) // Convert m/s to km/h
+    };
+  } catch (error) {
+    console.error('Error fetching weather data:', error.message);
+    return null;
+  }
+};
+
+const fetchForecastFromAPI = async (city) => {
+  try {
+    const response = await axios.get(`${WEATHER_API_BASE}/forecast`, {
+      params: {
+        q: city,
+        appid: API_KEY
+      }
+    });
+
+    const dailyForecasts = response.data.list
+      .filter((item, index) => index % 8 === 0) // Get one reading per day
+      .slice(0, 5) // Get 5 days
+      .map(item => ({
+        date: new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        temp: kelvinToCelsius(item.main.temp),
+        condition: item.weather[0].main,
+        icon: iconUrl(item.weather[0].icon)
+      }));
+
+    return dailyForecasts;
+  } catch (error) {
+    console.error('Error fetching forecast data:', error.message);
+    return null;
+  }
+};
+
+const updateWeatherInDB = async (city, current, forecast) => {
+  try {
+    await LocationWeather.findOneAndUpdate(
+      { city: normalizeCity(city) },
+      { 
+        city: normalizeCity(city),
+        current,
+        forecast,
+        updatedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+  } catch (error) {
+    console.error('Error updating weather in DB:', error.message);
+  }
+};
 
 const fetchCurrentFromMongo = async (city) => {
   const normalized = normalizeCity(city);
@@ -55,48 +129,70 @@ const homelist = async (req, res) => {
     return res.render('index', viewModel);
   }
 
-  const mongoCurrent = await fetchCurrentFromMongo(city);
-  if (mongoCurrent) {
-    viewModel.weatherResult = mongoCurrent;
+  try {
+    // Fetch real-time data from OpenWeather API
+    const currentWeather = await fetchWeatherFromAPI(city);
+    
+    if (currentWeather) {
+      // Store the data in MongoDB
+      await updateWeatherInDB(city, currentWeather, null);
+
+      viewModel.weatherResult = {
+        location: currentWeather.name,
+        temp: currentWeather.temp,
+        condition: currentWeather.condition,
+        icon: iconUrl(currentWeather.icon),
+        humidity: currentWeather.humidity,
+        windSpeed: currentWeather.windSpeed,
+        source: 'api',
+        query: city
+      };
+      return res.render('index', viewModel);
+    }
+
+    viewModel.error = `Could not find weather data for "${city}". Please check the city name.`;
+    return res.render('index', viewModel);
+  } catch (error) {
+    viewModel.error = 'An error occurred while fetching weather data. Please try again.';
     return res.render('index', viewModel);
   }
-
-  viewModel.error = `No stored weather data found for "${city}". Add it in MongoDB first.`;
-  return res.render('index', viewModel);
 };
 
 const forecast = async (req, res) => {
   const city = (req.query.city || '').trim();
   if (!city) return res.render('forecast', { title: 'Forecast', error: 'Search 5 days forecast.' });
 
-  const normalized = normalizeCity(city);
-  const doc = normalized
-    ? await LocationWeather.findOne({ city: new RegExp(`^${normalized}$`, 'i') }).lean()
-    : null;
-  if (doc && Array.isArray(doc.forecast) && doc.forecast.length) {
-    const days = doc.forecast.slice(0, 5).map(day => ({
-      date: day.date,
-      temp: day.temp,
-      condition: day.condition,
-      icon: iconUrl(day.icon)
-    }));
+  try {
+    // Fetch real-time forecast from OpenWeather API
+    const forecastData = await fetchForecastFromAPI(city);
+    const currentWeather = await fetchWeatherFromAPI(city);
+
+    if (forecastData && currentWeather) {
+      // Store the data in MongoDB
+      await updateWeatherInDB(city, currentWeather, forecastData);
+
+      res.render('forecast', {
+        title: '5-Day Forecast',
+        location: currentWeather.name,
+        days: forecastData,
+        source: 'api',
+        query: city
+      });
+      return;
+    }
+
     res.render('forecast', {
       title: '5-Day Forecast',
-      location: doc.current ? doc.current.name || doc.city : doc.city,
-      days,
-      source: 'mongo',
-      query: doc.city
+      error: `Could not find forecast data for "${city}". Please check the city name.`,
+      query: city
     });
-    return;
+  } catch (error) {
+    res.render('forecast', {
+      title: '5-Day Forecast',
+      error: 'An error occurred while fetching forecast data. Please try again.',
+      query: city
+    });
   }
-
-  res.render('forecast', {
-    title: '5-Day Forecast',
-    error: normalized
-      ? `No stored forecast found for "${city}". Add it in MongoDB first.`
-      : 'Search 5 days forecast.',
-    query: city
-  });
 };
 
 module.exports = { homelist, forecast };

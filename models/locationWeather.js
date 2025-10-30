@@ -32,6 +32,5 @@ const locationWeatherSchema = new mongoose.Schema(
   { collection: 'locations', timestamps: true }
 );
 
-locationWeatherSchema.index({ city: 1 });
 
 module.exports = mongoose.model('LocationWeather', locationWeatherSchema);

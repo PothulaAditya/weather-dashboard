@@ -19,7 +19,7 @@ const check = async () => {
   try {
     const forecast = await axios.get(`${base.replace(/\/$/, '')}/api/forecast`, {
       params: { city: 'Secunderabad,IN' },
-      timeout: 8000
+      timeout: 15000
     });
     console.log('/api/forecast ->', forecast.status);
     if (forecast.data && Array.isArray(forecast.data.days)) {
